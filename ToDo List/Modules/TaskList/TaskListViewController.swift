@@ -8,7 +8,6 @@
 import UIKit
 
 protocol TaskListViewProtocol: AnyObject {
-    
     var presenter: TaskListPresenterProtocol { get set }
     
     func show(_ tasks: [Task])
@@ -58,6 +57,7 @@ final class TaskListViewController: UIViewController {
     
     private func setupNavigationBar() {
         navigationItem.title = "Задачи"
+        navigationItem.backButtonTitle = "Назад"
         let appearance = UINavigationBarAppearance()
         appearance.largeTitleTextAttributes = [.foregroundColor: UIColor(named: "WhiteTodo") ?? .white]
         appearance.titleTextAttributes = [.foregroundColor: UIColor(named: "WhiteTodo") ?? .white]
@@ -66,6 +66,7 @@ final class TaskListViewController: UIViewController {
         navigationController?.navigationBar.standardAppearance = appearance
         navigationController?.navigationBar.prefersLargeTitles = true
         navigationController?.navigationBar.barTintColor = UIColor(named: "BlackTodo")
+        navigationController?.navigationBar.tintColor = UIColor(named: "YellowTodo")
     }
     
     private func setupUI() {
@@ -126,7 +127,7 @@ final class TaskListViewController: UIViewController {
     }
     
     @objc func didTapCreate() {
-        //TODO: router to newTask
+        presenter.didSelectCreate(from: self)
     }
 }
 
@@ -158,8 +159,7 @@ extension TaskListViewController: UITableViewDataSource, UITableViewDelegate {
             
             let edit = UIAction(title: "Редактировать", image: UIImage(named: "EditIcon")) { [weak self] _ in
                 guard let self else { return }
-
-                //TODO: редактировать
+                presenter.didSelectEdit(from: self, task: self.tasks[indexPath.row])
             }
             
             let share = UIAction(title: "Поделиться", image: UIImage(named: "ExportIcon")) { [weak self] _ in
@@ -189,8 +189,8 @@ extension TaskListViewController: UITableViewDataSource, UITableViewDelegate {
     }
 
     func tableView(_ tableView: UITableView, willEndContextMenuInteraction configuration: UIContextMenuConfiguration, animator: UIContextMenuInteractionAnimating?) {
-
         guard let indexPath = configuration.identifier as? NSIndexPath else { return }
+        
         if let cell = tableView.cellForRow(at: IndexPath(row: indexPath.row, section: indexPath.section)) as? TaskListCell {
             animator?.addAnimations({
                 cell.selectedTask(false)

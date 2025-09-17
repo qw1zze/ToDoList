@@ -18,6 +18,8 @@ protocol TaskListPresenterProtocol: AnyObject {
     func updateTaskState(task: Task, done completed: Bool)
     func didSelectShare(vc: UIViewController, _ task: Task)
     func didSelectDelete(_ task: Task)
+    func didSelectCreate(from vc: UIViewController)
+    func didSelectEdit(from vc: UIViewController, task: Task)
 }
 
 protocol TaskListInteractorOutputProtocol: AnyObject {
@@ -54,6 +56,18 @@ final class TaskListPresenter: TaskListPresenterProtocol {
     
     func didSelectDelete(_ task: Task) {
         interactor.deleteTask(task)
+    }
+
+    func didSelectCreate(from view: UIViewController) {
+        router?.routeToCreate(from: view) { [weak self] task in
+            self?.interactor.addTask(task)
+        }
+    }
+    
+    func didSelectEdit(from vc: UIViewController, task: Task) {
+        router?.routeToEdit(from: vc, task: task) { [weak self] task in
+            self?.interactor.updateTask(task)
+        }
     }
 }
 
