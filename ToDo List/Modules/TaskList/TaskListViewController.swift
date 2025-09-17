@@ -55,6 +55,11 @@ final class TaskListViewController: UIViewController {
         updateBottomBarCount()
     }
     
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        navigationController?.navigationBar.prefersLargeTitles = true
+    }
+    
     private func setupNavigationBar() {
         navigationItem.title = "Задачи"
         navigationItem.backButtonTitle = "Назад"

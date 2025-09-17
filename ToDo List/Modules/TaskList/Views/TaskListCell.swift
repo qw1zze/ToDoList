@@ -83,6 +83,7 @@ class TaskListCell: UITableViewCell {
     }
     
     private func setupUI() {
+        backgroundColor = UIColor(named: "BlackTodo")
         contentView.backgroundColor = UIColor(named: "BlackTodo")
         
         contentView.addSubview(checkBox)
@@ -144,6 +145,7 @@ class TaskListCell: UITableViewCell {
     
     func configure(with task: Task) {
         titleLabel.text = task.title
+        descriptionLabel.text = task.description
         checkBox.isSelected = task.completed
         completeText(checkBox.isSelected)
         dateLabel.text = task.date?.toString() ?? Date.now.toString()
@@ -152,10 +154,19 @@ class TaskListCell: UITableViewCell {
     func selectedTask(_ selected: Bool) {
         checkBox.isHidden = selected
         contentView.backgroundColor = selected ? UIColor(named: "GrayTodo") : UIColor(named: "BlackTodo")
+        self.backgroundColor = contentView.backgroundColor
         if selected {
+            contentView.layer.cornerRadius = 12
+            contentView.clipsToBounds = true
+            layer.cornerRadius = 12
+            clipsToBounds = true
             stackLeadingToCheckbox?.isActive = false
             stackLeadingToLeft?.isActive = true
         } else {
+            contentView.layer.cornerRadius = 0
+            contentView.clipsToBounds = false
+            layer.cornerRadius = 0
+            clipsToBounds = false
             stackLeadingToLeft?.isActive = false
             stackLeadingToCheckbox?.isActive = true
         }
