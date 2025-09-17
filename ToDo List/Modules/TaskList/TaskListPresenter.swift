@@ -14,11 +14,16 @@ protocol TaskListPresenterProtocol: AnyObject {
     var router: TaskListRouterProtocol? { get set }
     
     func loadTasks()
+    func searchTextDidChange(_ text: String?)
+    func updateTaskState(task: Task, done completed: Bool)
+    func didSelectShare(vc: UIViewController, _ task: Task)
+    func didSelectDelete(_ task: Task)
 }
 
 protocol TaskListInteractorOutputProtocol: AnyObject {
-    func didLoadTasks(_ tasks: [Task])
+    func updateTasks(_ tasks: [Task])
     func didFailLoadingTasks(_ error: Error)
+    func updateTask(_ row: Int, tasks: [Task])
 }
 
 final class TaskListPresenter: TaskListPresenterProtocol {
@@ -34,10 +39,26 @@ final class TaskListPresenter: TaskListPresenterProtocol {
     func loadTasks() {
         interactor.loadTasks()
     }
+    
+    func searchTextDidChange(_ text: String?) {
+        interactor.filterTasks(text)
+    }
+    
+    func updateTaskState(task: Task, done completed: Bool) {
+        interactor.makeDone(task: task, completed: completed)
+    }
+    
+    func didSelectShare(vc: UIViewController, _ task: Task) {
+        router?.routeToShare(from: vc, task)
+    }
+    
+    func didSelectDelete(_ task: Task) {
+        interactor.deleteTask(task)
+    }
 }
 
 extension TaskListPresenter: TaskListInteractorOutputProtocol {
-    func didLoadTasks(_ tasks: [Task]) {
+    func updateTasks(_ tasks: [Task]) {
         DispatchQueue.main.async {
             self.view?.show(tasks)
         }
@@ -46,6 +67,12 @@ extension TaskListPresenter: TaskListInteractorOutputProtocol {
     func didFailLoadingTasks(_ error: any Error) {
         DispatchQueue.main.async {
             self.view?.showLoadError(error.localizedDescription)
+        }
+    }
+    
+    func updateTask(_ row: Int, tasks: [Task]) {
+        DispatchQueue.main.async {
+            self.view?.applyTableChanges(model: .delete(IndexPath(row: row, section: 0), tasks: tasks))
         }
     }
 }

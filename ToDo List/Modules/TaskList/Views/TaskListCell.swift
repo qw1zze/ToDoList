@@ -30,10 +30,13 @@ class TaskListCell: UITableViewCell {
         return stackView
     }()
     
+    private var stackLeadingToCheckbox: NSLayoutConstraint?
+    private var stackLeadingToLeft: NSLayoutConstraint?
+    
     private lazy var titleLabel: UILabel = {
         let label = UILabel()
         label.font = .systemFont(ofSize: 16, weight: .medium)
-        label.textColor = UIColor(named: "White")
+        label.textColor = UIColor(named: "WhiteTodo")
         label.numberOfLines = 2
         label.lineBreakMode = .byTruncatingTail
         
@@ -43,7 +46,7 @@ class TaskListCell: UITableViewCell {
     private lazy var descriptionLabel: UILabel = {
         let label = UILabel()
         label.font = .systemFont(ofSize: 12, weight: .regular)
-        label.textColor = UIColor(named: "White")
+        label.textColor = UIColor(named: "WhiteTodo")
         label.numberOfLines = 2
         label.lineBreakMode = .byTruncatingTail
         
@@ -53,7 +56,7 @@ class TaskListCell: UITableViewCell {
     private lazy var dateLabel: UILabel = {
         let label = UILabel()
         label.font = UIFont.systemFont(ofSize: 12, weight: .regular)
-        label.textColor = UIColor(named: "White")
+        label.textColor = UIColor(named: "WhiteTodo")
         label.alpha = 0.5
         
         label.text = "02/10/24"
@@ -76,10 +79,11 @@ class TaskListCell: UITableViewCell {
         titleLabel.text = nil
         descriptionLabel.text = nil
         dateLabel.text = nil
+        selectedTask(false)
     }
     
     private func setupUI() {
-        contentView.backgroundColor = UIColor(named: "Black")
+        contentView.backgroundColor = UIColor(named: "BlackTodo")
         
         contentView.addSubview(checkBox)
         checkBox.translatesAutoresizingMaskIntoConstraints = false
@@ -94,8 +98,11 @@ class TaskListCell: UITableViewCell {
         contentView.addSubview(mainStackView)
         mainStackView.translatesAutoresizingMaskIntoConstraints = false
         
+        stackLeadingToCheckbox = mainStackView.leadingAnchor.constraint(equalTo: checkBox.trailingAnchor, constant: 8)
+        stackLeadingToLeft = mainStackView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20)
+        
+        stackLeadingToCheckbox?.isActive = true
         NSLayoutConstraint.activate([
-            mainStackView.leadingAnchor.constraint(equalTo: checkBox.trailingAnchor, constant: 8),
             mainStackView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
             mainStackView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 12),
             mainStackView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -12)
@@ -140,5 +147,13 @@ class TaskListCell: UITableViewCell {
         checkBox.isSelected = task.completed
         completeText(checkBox.isSelected)
         dateLabel.text = task.date?.toString() ?? Date.now.toString()
+    }
+    
+    func selectedTask(_ selected: Bool) {
+        checkBox.isHidden = selected
+        contentView.backgroundColor = selected ? UIColor(named: "GrayTodo") : UIColor(named: "BlackTodo")
+        stackLeadingToCheckbox?.isActive = selected ? false : true
+        stackLeadingToLeft?.isActive = selected ? true : false
+        contentView.layoutIfNeeded()
     }
 }

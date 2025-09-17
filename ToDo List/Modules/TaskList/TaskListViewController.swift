@@ -13,29 +13,20 @@ protocol TaskListViewProtocol: AnyObject {
     
     func show(_ tasks: [Task])
     func showLoadError(_ error: String)
+    func applyTableChanges(model: UpdateTableModel)
 }
 
 final class TaskListViewController: UIViewController {
     
     var presenter: TaskListPresenterProtocol
     
-    private var tasks: [Task] = [] {
-        didSet {
-            tableView.reloadData()
-            updateBottomBarCount()
-        }
-    }
-    
-    private var filteredTasks: [Task] = []
-    private var isFiltering: Bool {
-        searchController.isActive && !(searchController.searchBar.text?.isEmpty ?? true)
-    }
+    private var tasks: [Task] = []
     
     private let searchController = UISearchController(searchResultsController: nil)
     
     private let tableView: UITableView = {
         let tableView = UITableView()
-        tableView.backgroundColor = UIColor(named: "Black")
+        tableView.backgroundColor = UIColor(named: "BlackTodo")
         tableView.separatorColor = .stroke
         tableView.separatorInset = .init(top: 0, left: 20, bottom: 0, right: 20)
         tableView.tableHeaderView = UIView()
@@ -68,17 +59,17 @@ final class TaskListViewController: UIViewController {
     private func setupNavigationBar() {
         navigationItem.title = "Задачи"
         let appearance = UINavigationBarAppearance()
-        appearance.largeTitleTextAttributes = [.foregroundColor: UIColor.white]
-        appearance.titleTextAttributes = [.foregroundColor: UIColor.white]
-        appearance.backgroundColor = .black
+        appearance.largeTitleTextAttributes = [.foregroundColor: UIColor(named: "WhiteTodo") ?? .white]
+        appearance.titleTextAttributes = [.foregroundColor: UIColor(named: "WhiteTodo") ?? .white]
+        appearance.backgroundColor = UIColor(named: "BlackTodo")
         navigationController?.navigationBar.scrollEdgeAppearance = appearance
         navigationController?.navigationBar.standardAppearance = appearance
         navigationController?.navigationBar.prefersLargeTitles = true
-        navigationController?.navigationBar.barTintColor = UIColor(named: "Black")
+        navigationController?.navigationBar.barTintColor = UIColor(named: "BlackTodo")
     }
     
     private func setupUI() {
-        view.backgroundColor = UIColor(named: "Black")
+        view.backgroundColor = UIColor(named: "BlackTodo")
         
         tableView.dataSource = self
         tableView.delegate = self
@@ -107,24 +98,24 @@ final class TaskListViewController: UIViewController {
         searchController.searchBar.searchTextField.attributedPlaceholder = NSAttributedString(
             string: "Search",
             attributes: [
-                .foregroundColor: UIColor(named: "White")?.withAlphaComponent(0.5) ?? .gray,
+                .foregroundColor: UIColor(named: "WhiteTodo")?.withAlphaComponent(0.5) ?? .gray,
                 .font: UIFont.systemFont(ofSize: 17, weight: .regular)
             ]
         )
-        if let glassIconView = searchController.searchBar.searchTextField.leftView as? UIImageView {
-            glassIconView.image = glassIconView.image?.withRenderingMode(.alwaysTemplate)
-            glassIconView.tintColor = UIColor(named: "White")?.withAlphaComponent(0.5)
+        if let searchIcon = searchController.searchBar.searchTextField.leftView as? UIImageView {
+            searchIcon.image = searchIcon.image?.withRenderingMode(.alwaysTemplate)
+            searchIcon.tintColor = UIColor(named: "WhiteTodo")?.withAlphaComponent(0.5)
         }
-        UIBarButtonItem.appearance(whenContainedInInstancesOf: [UISearchBar.self]).tintColor = UIColor(named: "White")?.withAlphaComponent(0.5)
-        searchController.searchBar.searchTextField.backgroundColor = UIColor(named: "Gray")
-        searchController.searchBar.searchTextField.tintColor = UIColor(named: "White")?.withAlphaComponent(0.5)
+        UIBarButtonItem.appearance(whenContainedInInstancesOf: [UISearchBar.self]).tintColor = UIColor(named: "WhiteTodo")?.withAlphaComponent(0.5)
+        searchController.searchBar.searchTextField.backgroundColor = UIColor(named: "GrayTodo")
+        searchController.searchBar.searchTextField.tintColor = UIColor(named: "WhiteTodo")?.withAlphaComponent(0.5)
         navigationItem.searchController = searchController
-        searchController.searchBar.searchTextField.textColor = UIColor(named: "White")?.withAlphaComponent(0.5)
+        searchController.searchBar.searchTextField.textColor = UIColor(named: "WhiteTodo")?.withAlphaComponent(0.5)
         navigationItem.hidesSearchBarWhenScrolling = false
         definesPresentationContext = true
     }
     
-    func updateBottomBarCount() {
+    private func updateBottomBarCount() {
         if tasks.count % 10 == 1 && tasks.count % 100 != 11 {
             bottomBarView.countLabel.text = "\(tasks.count) Задача"
         } else if [1, 2, 3, 4].contains(tasks.count % 10) && ![11, 12, 13, 14].contains(tasks.count % 100) {
@@ -141,7 +132,7 @@ final class TaskListViewController: UIViewController {
 
 extension TaskListViewController: UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return isFiltering ? filteredTasks.count : tasks.count
+        return tasks.count
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -149,25 +140,69 @@ extension TaskListViewController: UITableViewDataSource, UITableViewDelegate {
             fatalError("Cannot dequeue TaskListCell")
         }
 
-        let currentTasks = isFiltering ? filteredTasks : tasks
-        let task = currentTasks[indexPath.row]
+        let task = tasks[indexPath.row]
         cell.configure(with: task)
-        cell.checkBoxTapped = { [weak self] tapped in
+        cell.checkBoxTapped = { [weak self] completed in
             guard let self else { return }
-            
-            if let id = self.tasks.firstIndex(where: { $0.id == task.id }) {
-                self.tasks[id].completed = tapped
-            }
-            self.updateSearchResults(for: self.searchController)
+            presenter.updateTaskState(task: task, done: completed)
         }
         
         return cell
+    }
+    
+    func tableView(_ tableView: UITableView, contextMenuConfigurationForRowAt indexPath: IndexPath, point: CGPoint) -> UIContextMenuConfiguration? {
+        
+        let configuration = UIContextMenuConfiguration(identifier: indexPath as NSIndexPath, previewProvider: nil) { [weak self] _ in
+            guard let self, indexPath.row < self.tasks.count else { return UIMenu(children: []) }
+            let task = self.tasks[indexPath.row]
+            
+            let edit = UIAction(title: "Редактировать", image: UIImage(named: "EditIcon")) { [weak self] _ in
+                guard let self else { return }
+
+                //TODO: редактировать
+            }
+            
+            let share = UIAction(title: "Поделиться", image: UIImage(named: "ExportIcon")) { [weak self] _ in
+                guard let self else { return }
+                presenter.didSelectShare(vc: self, task)
+            }
+            
+            let delete = UIAction(title: "Удалить", image: UIImage(named: "TrashIcon"), attributes: .destructive) { [weak self] _ in
+                guard let self else { return }
+                presenter.didSelectDelete(task)
+                presenter.searchTextDidChange(searchController.searchBar.text)
+            }
+            
+            return UIMenu(children: [edit, share, delete])
+        }
+        return configuration
+    }
+    
+    func tableView(_ tableView: UITableView, willDisplayContextMenu configuration: UIContextMenuConfiguration, animator: (any UIContextMenuInteractionAnimating)?) {
+        guard let indexPath = configuration.identifier as? NSIndexPath else { return }
+        
+        if let cell = tableView.cellForRow(at: IndexPath(row: indexPath.row, section: indexPath.section)) as? TaskListCell {
+            animator?.addAnimations({
+                cell.selectedTask(true)
+            })
+        }
+    }
+
+    func tableView(_ tableView: UITableView, willEndContextMenuInteraction configuration: UIContextMenuConfiguration, animator: UIContextMenuInteractionAnimating?) {
+
+        guard let indexPath = configuration.identifier as? NSIndexPath else { return }
+        if let cell = tableView.cellForRow(at: IndexPath(row: indexPath.row, section: indexPath.section)) as? TaskListCell {
+            animator?.addAnimations({
+                cell.selectedTask(false)
+            })
+        }
     }
 }
 
 extension TaskListViewController: TaskListViewProtocol {
     func show(_ tasks: [Task]) {
         self.tasks = tasks
+        applyTableChanges(model: .reload)
     }
     
     func showLoadError(_ error: String) {
@@ -175,21 +210,25 @@ extension TaskListViewController: TaskListViewProtocol {
         alert.addAction(UIAlertAction(title: "Ок", style: .default))
         present(alert, animated: true)
     }
+    
+    func applyTableChanges(model: UpdateTableModel) {
+        switch model {
+        case .delete(let indexPath, let tasks):
+            self.tasks = tasks
+            tableView.performBatchUpdates({
+                self.tableView.deleteRows(at: [indexPath], with: .fade)
+             }, completion: { _ in
+                 self.updateBottomBarCount()
+             })
+        case .reload:
+            tableView.reloadData()
+            updateBottomBarCount()
+        }
+    }
 }
 
 extension TaskListViewController: UISearchResultsUpdating {
     func updateSearchResults(for searchController: UISearchController) {
-        let text = searchController.searchBar.text?.lowercased().trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        
-        if text.isEmpty {
-            filteredTasks = []
-        } else {
-            filteredTasks = tasks.filter { task in
-                let title = task.title?.lowercased() ?? ""
-                let description = task.description?.lowercased() ?? ""
-                return title.contains(text) || description.contains(text)
-            }
-        }
-        tableView.reloadData()
+        presenter.searchTextDidChange(searchController.searchBar.text)
     }
 }

@@ -7,7 +7,11 @@
 
 import Foundation
 
-final class TaskDownloadService {
+protocol TaskDownloadServicing {
+    func fetchData(completion: @escaping (Result<TaskList, Error>) -> Void)
+}
+
+final class TaskDownloadService: TaskDownloadServicing {
 	private let session: URLSession
 	private let decoder: JSONDecoder
     

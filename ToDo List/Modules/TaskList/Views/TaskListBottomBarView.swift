@@ -11,7 +11,7 @@ final class TaskListBottomBarView: UIView {
     
     let countLabel: UILabel = {
         let label = UILabel()
-        label.textColor = UIColor(named: "White")
+        label.textColor = UIColor(named: "WhiteTodo")
         label.font = UIFont.systemFont(ofSize: 11, weight: .regular)
         label.textAlignment = .center
         return label
@@ -21,7 +21,7 @@ final class TaskListBottomBarView: UIView {
         let button = UIButton(type: .system)
         let image = UIImage(named: "NewTask")
         button.setImage(image, for: .normal)
-        button.tintColor = UIColor(named: "Yellow")
+        button.tintColor = UIColor(named: "YellowTodo")
         return button
     }()
     
@@ -35,7 +35,7 @@ final class TaskListBottomBarView: UIView {
     }
     
     private func setupUI() {
-        backgroundColor = UIColor(named: "Gray")
+        backgroundColor = UIColor(named: "GrayTodo")
         
         addSubview(countLabel)
         addSubview(createButton)

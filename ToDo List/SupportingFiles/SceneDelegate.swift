@@ -15,7 +15,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let windowScene = (scene as? UIWindowScene) else { return }
     
         let window = UIWindow(windowScene: windowScene)
-        let vc = TaskListRouter.build()
+        let vc = TaskListAssembly.build()
         window.rootViewController = UINavigationController(rootViewController: vc)
         
         self.window = window

@@ -8,20 +8,14 @@
 import UIKit
 
 protocol TaskListRouterProtocol: AnyObject {
-    static func build() -> UIViewController
+    func routeToShare(from view: UIViewController, _ task: Task)
 }
 
 final class TaskListRouter: TaskListRouterProtocol {
-    
-    static func build() -> UIViewController {
-        let interactor = TaskListInteractor()
-        let presenter = TaskListPresenter(interactor: interactor)
-        let viewController = TaskListViewController(presenter: presenter)
-        
-        presenter.view = viewController
-        interactor.presenter = presenter
-        presenter.router = TaskListRouter()
-        return viewController
+    func routeToShare(from view: UIViewController, _ task: Task) {
+        let text = [task.title, task.description].compactMap { $0 }.joined(separator: "\n")
+        let vc = UIActivityViewController(activityItems: [text], applicationActivities: nil)
+        vc.popoverPresentationController?.sourceView = view.view
+        view.present(vc, animated: true)
     }
-    
 }
