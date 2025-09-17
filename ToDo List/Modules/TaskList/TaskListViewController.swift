@@ -21,9 +21,17 @@ final class TaskListViewController: UIViewController {
     
     private var tasks: [Task] = [] {
         didSet {
-//            tableView.reloadData()
+            tableView.reloadData()
+            updateBottomBarCount()
         }
     }
+    
+    private var filteredTasks: [Task] = []
+    private var isFiltering: Bool {
+        searchController.isActive && !(searchController.searchBar.text?.isEmpty ?? true)
+    }
+    
+    private let searchController = UISearchController(searchResultsController: nil)
     
     private let tableView: UITableView = {
         let tableView = UITableView()
@@ -35,6 +43,8 @@ final class TaskListViewController: UIViewController {
         tableView.register(TaskListCell.self, forCellReuseIdentifier: TaskListCell.identifier)
         return tableView
     }()
+    
+    private let bottomBarView = TaskListBottomBarView()
     
     init(presenter: TaskListPresenterProtocol) {
         self.presenter = presenter
@@ -49,11 +59,10 @@ final class TaskListViewController: UIViewController {
         super.viewDidLoad()
         setupNavigationBar()
         setupUI()
+        setupSearch()
         
-        tableView.dataSource = self
-        tableView.delegate = self
-
         presenter.loadTasks()
+        updateBottomBarCount()
     }
     
     private func setupNavigationBar() {
@@ -71,31 +80,85 @@ final class TaskListViewController: UIViewController {
     private func setupUI() {
         view.backgroundColor = UIColor(named: "Black")
         
+        tableView.dataSource = self
+        tableView.delegate = self
         view.addSubview(tableView)
+        view.addSubview(bottomBarView)
         tableView.translatesAutoresizingMaskIntoConstraints = false
+        bottomBarView.translatesAutoresizingMaskIntoConstraints = false
+        bottomBarView.createButton.addTarget(self, action: #selector(didTapCreate), for: .touchUpInside)
         
         NSLayoutConstraint.activate([
             tableView.topAnchor.constraint(equalTo: view.topAnchor),
-            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            tableView.bottomAnchor.constraint(equalTo: bottomBarView.topAnchor),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor)
+            tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            
+            bottomBarView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            bottomBarView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            bottomBarView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            bottomBarView.heightAnchor.constraint(equalToConstant: 93)
         ])
+    }
+
+    private func setupSearch() {
+        searchController.searchResultsUpdater = self
+        searchController.obscuresBackgroundDuringPresentation = false
+        searchController.searchBar.searchTextField.attributedPlaceholder = NSAttributedString(
+            string: "Search",
+            attributes: [
+                .foregroundColor: UIColor(named: "White")?.withAlphaComponent(0.5) ?? .gray,
+                .font: UIFont.systemFont(ofSize: 17, weight: .regular)
+            ]
+        )
+        if let glassIconView = searchController.searchBar.searchTextField.leftView as? UIImageView {
+            glassIconView.image = glassIconView.image?.withRenderingMode(.alwaysTemplate)
+            glassIconView.tintColor = UIColor(named: "White")?.withAlphaComponent(0.5)
+        }
+        UIBarButtonItem.appearance(whenContainedInInstancesOf: [UISearchBar.self]).tintColor = UIColor(named: "White")?.withAlphaComponent(0.5)
+        searchController.searchBar.searchTextField.backgroundColor = UIColor(named: "Gray")
+        searchController.searchBar.searchTextField.tintColor = UIColor(named: "White")?.withAlphaComponent(0.5)
+        navigationItem.searchController = searchController
+        searchController.searchBar.searchTextField.textColor = UIColor(named: "White")?.withAlphaComponent(0.5)
+        navigationItem.hidesSearchBarWhenScrolling = false
+        definesPresentationContext = true
+    }
+    
+    func updateBottomBarCount() {
+        if tasks.count % 10 == 1 && tasks.count % 100 != 11 {
+            bottomBarView.countLabel.text = "\(tasks.count) Задача"
+        } else if [1, 2, 3, 4].contains(tasks.count % 10) && ![11, 12, 13, 14].contains(tasks.count % 100) {
+            bottomBarView.countLabel.text = "\(tasks.count) Задачи"
+        } else {
+            bottomBarView.countLabel.text = "\(tasks.count) Задач"
+        }
+    }
+    
+    @objc func didTapCreate() {
+        //TODO: router to newTask
     }
 }
 
 extension TaskListViewController: UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return tasks.count
+        return isFiltering ? filteredTasks.count : tasks.count
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         guard let cell = tableView.dequeueReusableCell(withIdentifier: TaskListCell.identifier, for: indexPath) as? TaskListCell else {
             fatalError("Cannot dequeue TaskListCell")
         }
-        
-        cell.configure(with: tasks[indexPath.row])
+
+        let currentTasks = isFiltering ? filteredTasks : tasks
+        let task = currentTasks[indexPath.row]
+        cell.configure(with: task)
         cell.checkBoxTapped = { [weak self] tapped in
-            self?.tasks[indexPath.row].completed = tapped
+            guard let self else { return }
+            
+            if let id = self.tasks.firstIndex(where: { $0.id == task.id }) {
+                self.tasks[id].completed = tapped
+            }
+            self.updateSearchResults(for: self.searchController)
         }
         
         return cell
@@ -105,12 +168,28 @@ extension TaskListViewController: UITableViewDataSource, UITableViewDelegate {
 extension TaskListViewController: TaskListViewProtocol {
     func show(_ tasks: [Task]) {
         self.tasks = tasks
-        tableView.reloadData()
     }
     
     func showLoadError(_ error: String) {
         let alert = UIAlertController(title: "Ошибка при загрузке данных", message: error, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "Ок", style: .default))
         present(alert, animated: true)
+    }
+}
+
+extension TaskListViewController: UISearchResultsUpdating {
+    func updateSearchResults(for searchController: UISearchController) {
+        let text = searchController.searchBar.text?.lowercased().trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        
+        if text.isEmpty {
+            filteredTasks = []
+        } else {
+            filteredTasks = tasks.filter { task in
+                let title = task.title?.lowercased() ?? ""
+                let description = task.description?.lowercased() ?? ""
+                return title.contains(text) || description.contains(text)
+            }
+        }
+        tableView.reloadData()
     }
 }
