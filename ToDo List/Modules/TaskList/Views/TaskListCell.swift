@@ -11,7 +11,7 @@ class TaskListCell: UITableViewCell {
     
     static let identifier = "TaskListCell"
     
-    var checkBoxTapped: (() -> Void)?
+    var checkBoxTapped: ((Bool) -> Void)?
     
     private lazy var checkBox: UIButton = {
         let button = UIButton(type: .custom)
@@ -70,6 +70,14 @@ class TaskListCell: UITableViewCell {
         fatalError("init(coder:) has not been implemented")
     }
     
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        titleLabel.attributedText = nil
+        titleLabel.text = nil
+        descriptionLabel.text = nil
+        dateLabel.text = nil
+    }
+    
     private func setupUI() {
         contentView.backgroundColor = UIColor(named: "Black")
         
@@ -105,7 +113,7 @@ class TaskListCell: UITableViewCell {
                 sender.transform = CGAffineTransform.identity
                 sender.alpha = 1.0
             } completion: { [weak self] _ in
-                self?.checkBoxTapped?()
+                self?.checkBoxTapped?(sender.isSelected)
             }
         }
         
@@ -131,5 +139,6 @@ class TaskListCell: UITableViewCell {
         titleLabel.text = task.title
         checkBox.isSelected = task.completed
         completeText(checkBox.isSelected)
+        dateLabel.text = task.date?.toString() ?? Date.now.toString()
     }
 }

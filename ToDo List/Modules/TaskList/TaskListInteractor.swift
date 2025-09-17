@@ -7,14 +7,30 @@
 
 protocol TaskListInteractorInputProtocol: AnyObject {
     
-    var presenter: TaskListInteractorOutputProtocol { get set }
+    var presenter: TaskListInteractorOutputProtocol? { get set }
+    
+    func loadTasks()
 }
 
 final class TaskListInteractor: TaskListInteractorInputProtocol {
    
-    var presenter: TaskListInteractorOutputProtocol
+    weak var presenter: TaskListInteractorOutputProtocol?
+    private let downloadService: TaskDownloadService
     
-    init(presenter: TaskListInteractorOutputProtocol) {
-        self.presenter = presenter
+    init(downloadService: TaskDownloadService = .init()) {
+        self.downloadService = downloadService
+    }
+    
+    func loadTasks() {
+        downloadService.fetchData { [weak self] result in
+            guard let self else { return }
+            
+            switch result {
+            case .success(let list):
+                self.presenter?.didLoadTasks(list.tasks)
+            case .failure(let error):
+                self.presenter?.didFailLoadingTasks(error)
+            }
+        }
     }
 }

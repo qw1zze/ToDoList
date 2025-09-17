@@ -14,12 +14,12 @@ protocol TaskListRouterProtocol: AnyObject {
 final class TaskListRouter: TaskListRouterProtocol {
     
     static func build() -> UIViewController {
-        let viewController = TaskListViewController()
-        let presenter = TaskListPresenter(view: viewController)
-        let interactor = TaskListInteractor(presenter: presenter)
+        let interactor = TaskListInteractor()
+        let presenter = TaskListPresenter(interactor: interactor)
+        let viewController = TaskListViewController(presenter: presenter)
         
-        viewController.presenter = presenter
-        presenter.interactor = interactor
+        presenter.view = viewController
+        interactor.presenter = presenter
         presenter.router = TaskListRouter()
         return viewController
     }

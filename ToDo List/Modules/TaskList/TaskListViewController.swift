@@ -9,15 +9,21 @@ import UIKit
 
 protocol TaskListViewProtocol: AnyObject {
     
-    var presenter: TaskListPresenterProtocol? { get set }
+    var presenter: TaskListPresenterProtocol { get set }
     
+    func show(_ tasks: [Task])
+    func showLoadError(_ error: String)
 }
 
 final class TaskListViewController: UIViewController {
     
-    weak var presenter: TaskListPresenterProtocol?
+    var presenter: TaskListPresenterProtocol
     
-    private var tasks: [Task] = []
+    private var tasks: [Task] = [] {
+        didSet {
+//            tableView.reloadData()
+        }
+    }
     
     private let tableView: UITableView = {
         let tableView = UITableView()
@@ -29,7 +35,16 @@ final class TaskListViewController: UIViewController {
         tableView.register(TaskListCell.self, forCellReuseIdentifier: TaskListCell.identifier)
         return tableView
     }()
-
+    
+    init(presenter: TaskListPresenterProtocol) {
+        self.presenter = presenter
+        super.init(nibName: nil, bundle: nil)
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         setupNavigationBar()
@@ -37,6 +52,8 @@ final class TaskListViewController: UIViewController {
         
         tableView.dataSource = self
         tableView.delegate = self
+
+        presenter.loadTasks()
     }
     
     private func setupNavigationBar() {
@@ -76,10 +93,24 @@ extension TaskListViewController: UITableViewDataSource, UITableViewDelegate {
             fatalError("Cannot dequeue TaskListCell")
         }
         
+        cell.configure(with: tasks[indexPath.row])
+        cell.checkBoxTapped = { [weak self] tapped in
+            self?.tasks[indexPath.row].completed = tapped
+        }
+        
         return cell
     }
 }
 
 extension TaskListViewController: TaskListViewProtocol {
+    func show(_ tasks: [Task]) {
+        self.tasks = tasks
+        tableView.reloadData()
+    }
     
+    func showLoadError(_ error: String) {
+        let alert = UIAlertController(title: "Ошибка при загрузке данных", message: error, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "Ок", style: .default))
+        present(alert, animated: true)
+    }
 }

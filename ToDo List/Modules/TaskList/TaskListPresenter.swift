@@ -9,28 +9,43 @@ import UIKit
 
 protocol TaskListPresenterProtocol: AnyObject {
     
-    var view: TaskListViewProtocol { get set }
-    var interactor: TaskListInteractorInputProtocol? { get set }
+    var view: TaskListViewProtocol? { get set }
+    var interactor: TaskListInteractorInputProtocol { get set }
     var router: TaskListRouterProtocol? { get set }
     
+    func loadTasks()
 }
 
 protocol TaskListInteractorOutputProtocol: AnyObject {
-    
+    func didLoadTasks(_ tasks: [Task])
+    func didFailLoadingTasks(_ error: Error)
 }
 
 final class TaskListPresenter: TaskListPresenterProtocol {
     
-    var view: TaskListViewProtocol
-    weak var interactor: TaskListInteractorInputProtocol?
+    weak var view: TaskListViewProtocol?
+    var interactor: TaskListInteractorInputProtocol
     var router: TaskListRouterProtocol?
     
-    init(view: TaskListViewProtocol) {
-        self.view = view
+    init(interactor: TaskListInteractorInputProtocol) {
+        self.interactor = interactor
     }
     
+    func loadTasks() {
+        interactor.loadTasks()
+    }
 }
 
 extension TaskListPresenter: TaskListInteractorOutputProtocol {
+    func didLoadTasks(_ tasks: [Task]) {
+        DispatchQueue.main.async {
+            self.view?.show(tasks)
+        }
+    }
     
+    func didFailLoadingTasks(_ error: any Error) {
+        DispatchQueue.main.async {
+            self.view?.showLoadError(error.localizedDescription)
+        }
+    }
 }

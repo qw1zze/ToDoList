@@ -11,7 +11,7 @@ struct Task: Decodable {
     let id: Int
     let title: String?
     let description: String?
-    let completed: Bool
+    var completed: Bool
     let userId: Int
     let date: Date?
     
