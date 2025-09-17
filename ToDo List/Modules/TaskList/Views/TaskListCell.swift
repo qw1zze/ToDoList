@@ -152,8 +152,13 @@ class TaskListCell: UITableViewCell {
     func selectedTask(_ selected: Bool) {
         checkBox.isHidden = selected
         contentView.backgroundColor = selected ? UIColor(named: "GrayTodo") : UIColor(named: "BlackTodo")
-        stackLeadingToCheckbox?.isActive = selected ? false : true
-        stackLeadingToLeft?.isActive = selected ? true : false
-        contentView.layoutIfNeeded()
+        if selected {
+            stackLeadingToCheckbox?.isActive = false
+            stackLeadingToLeft?.isActive = true
+        } else {
+            stackLeadingToLeft?.isActive = false
+            stackLeadingToCheckbox?.isActive = true
+        }
+        contentView.layoutSubviews()
     }
 }
