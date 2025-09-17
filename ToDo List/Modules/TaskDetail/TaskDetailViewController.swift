@@ -18,7 +18,6 @@ final class TaskDetailViewController: UIViewController {
     
     private let scrollView = UIScrollView()
     private let contentView = UIView()
-    private var maxTitleHeight: CGFloat { (titleTextView.font?.lineHeight ?? 34) * 3 }
     
     private let titleTextView: UITextView = {
         let textView = UITextView()
@@ -178,8 +177,8 @@ final class TaskDetailViewController: UIViewController {
     
     private func adjustTitleHeight() {
         let size = CGSize(width: titleTextView.bounds.width, height: CGFloat.greatestFiniteMagnitude)
-        let capped = min(maxTitleHeight, titleTextView.sizeThatFits(size).height)
-        titleHeightConstraint?.constant = max(titleTextView.font?.lineHeight ?? 34, capped)
+        let fitting = titleTextView.sizeThatFits(size)
+        titleHeightConstraint?.constant = max(titleTextView.font?.lineHeight ?? 34, fitting.height)
         view.layoutIfNeeded()
     }
     
@@ -206,30 +205,19 @@ extension TaskDetailViewController: TaskDetailViewProtocol {
 
 extension TaskDetailViewController: UITextViewDelegate {
     func textViewDidChange(_ textView: UITextView) {
-        guard textView === titleTextView else {
-            updatePlaceholders()
-            return
-        }
-        
-        let size = CGSize(width: titleTextView.bounds.width, height: .greatestFiniteMagnitude)
-        let fitting = titleTextView.sizeThatFits(size)
-        
-        guard fitting.height > maxTitleHeight, let range = titleTextView.selectedTextRange else {
+        if textView === titleTextView {
             adjustTitleHeight()
-            updatePlaceholders()
-            return
         }
-            
-        let start = titleTextView.offset(from: titleTextView.beginningOfDocument, to: range.start)
-        if start > 0 {
-            let string = NSMutableString(string: titleTextView.text ?? "")
-            string.deleteCharacters(in: NSRange(location: start - 1, length: 1))
-            titleTextView.text = String(string)
-            let end = titleTextView.endOfDocument
-            titleTextView.selectedTextRange = titleTextView.textRange(from: end, to: end)
-        }
-        adjustTitleHeight()
         updatePlaceholders()
+    }
+    
+    func textView(_ textView: UITextView, shouldChangeTextIn range: NSRange, replacementText text: String) -> Bool {
+        if textView === titleTextView {
+            let currentText = textView.text ?? ""
+            let newText = (currentText as NSString).replacingCharacters(in: range, with: text)
+            return newText.count <= 100
+        }
+        return true
     }
 }
 
