@@ -202,6 +202,44 @@ extension TaskListViewController: UITableViewDataSource, UITableViewDelegate {
             })
         }
     }
+    
+    func tableView(_ tableView: UITableView, leadingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
+        guard indexPath.row < tasks.count else { return nil }
+        let task = tasks[indexPath.row]
+        
+        let doneAction = UIContextualAction(style: .normal, title: nil) { [weak self] _, _, completion in
+            guard let self else { return }
+            presenter.updateTaskState(task: task, done: !task.completed)
+            completion(true)
+        }
+        doneAction.backgroundColor = UIColor(named: "YellowTodo")
+        doneAction.image = UIImage(systemName: task.completed ? "arrow.uturn.backward" : "checkmark")
+        
+        return UISwipeActionsConfiguration(actions: [doneAction])
+    }
+    
+    func tableView(_ tableView: UITableView, trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
+        guard indexPath.row < tasks.count else { return nil }
+        let task = tasks[indexPath.row]
+        
+        let editAction = UIContextualAction(style: .normal, title: nil) { [weak self] _, _, completion in
+            guard let self else { return }
+            presenter.didSelectEdit(from: self, task: task)
+            completion(true)
+        }
+        editAction.backgroundColor = UIColor(named: "GrayTodo")
+        editAction.image = UIImage(named: "EditIcon")
+        
+        let deleteAction = UIContextualAction(style: .destructive, title: nil) { [weak self] _, _, completion in
+            guard let self else { return }
+            presenter.didSelectDelete(task)
+            completion(true)
+        }
+        deleteAction.backgroundColor = .systemRed
+        deleteAction.image = UIImage(named: "TrashIcon")
+        
+        return UISwipeActionsConfiguration(actions: [deleteAction, editAction])
+    }
 }
 
 extension TaskListViewController: TaskListViewProtocol {
