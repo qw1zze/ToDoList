@@ -13,7 +13,7 @@ class CoreDataStack {
     
     private init() {}
     
-    lazy var container: NSPersistentContainer = {
+    private lazy var container: NSPersistentContainer = {
         let container = NSPersistentContainer(name: "ToDoList")
         container.loadPersistentStores { _, error in
             if let error = error as NSError? {
@@ -23,14 +23,20 @@ class CoreDataStack {
         return container
     }()
     
-    var context: NSManagedObjectContext {
-        return container.viewContext
+    private lazy var backgroundContext: NSManagedObjectContext = {
+        let context = container.newBackgroundContext()
+        context.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
+        return context
+    }()
+    
+    func getBackgroundContext() -> NSManagedObjectContext {
+        return backgroundContext
     }
     
-    func saveContext() {
-        if container.viewContext.hasChanges {
+    func saveBackgroundContext() {
+        if backgroundContext.hasChanges {
             do {
-                try container.viewContext.save()
+                try backgroundContext.save()
             } catch {
                 fatalError("Error with Context")
             }
