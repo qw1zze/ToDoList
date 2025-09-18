@@ -22,27 +22,25 @@ final class TaskListInteractor: TaskListInteractorInputProtocol {
    
     weak var presenter: TaskListInteractorOutputProtocol?
     private let downloadService: TaskDownloadServicing
+    private let coreDataService: CoreDataServiceProtocol
     
     private var tasks : [Task] = []
     private var shownTasks: [Task] = []
     
-    init(downloadService: TaskDownloadServicing = TaskDownloadService()) {
+    init(downloadService: TaskDownloadServicing = TaskDownloadService(), 
+         coreDataService: CoreDataServiceProtocol = CoreDataService()) {
         self.downloadService = downloadService
+        self.coreDataService = coreDataService
     }
     
     func loadTasks() {
-        downloadService.fetchData { [weak self] result in
-            guard let self else { return }
-            
-            switch result {
-            case .success(let list):
-                let formattedTasks = addDatesToTasks(tasks: list.tasks)
-                self.tasks = formattedTasks
-                self.shownTasks = formattedTasks
-                self.presenter?.updateTasks(formattedTasks)
-            case .failure(let error):
-                self.presenter?.didFailLoadingTasks(error)
-            }
+        if AppLaunchManager.shared.isFirstLaunch {
+            refreshTasks()
+        } else {
+            let savedTasks = coreDataService.loadTasks()
+            self.tasks = savedTasks
+            self.shownTasks = savedTasks
+            self.presenter?.updateTasks(savedTasks)
         }
     }
     
@@ -70,6 +68,10 @@ final class TaskListInteractor: TaskListInteractorInputProtocol {
             self.shownTasks[id].completed = completed
             presenter?.updateTasks(shownTasks)
         }
+        
+        var newTask = task
+        newTask.completed = completed
+        coreDataService.updateTask(newTask)
     }
     
     func deleteTask(_ task: Task) {
@@ -81,12 +83,16 @@ final class TaskListInteractor: TaskListInteractorInputProtocol {
             shownTasks.remove(at: id)
             presenter?.updateTask(id, tasks: shownTasks)
         }
+        
+        coreDataService.deleteTask(withId: task.id)
     }
     
     func addTask(_ task: Task) {
         tasks.insert(task, at: 0)
         shownTasks.insert(task, at: 0)
         presenter?.updateTasks(shownTasks)
+        
+        coreDataService.addTask(task)
     }
     
     func updateTask(_ task: Task) {
@@ -98,6 +104,8 @@ final class TaskListInteractor: TaskListInteractorInputProtocol {
             shownTasks[id] = task
             presenter?.updateTasks(shownTasks)
         }
+        
+        coreDataService.updateTask(task)
     }
     
     private func addDatesToTasks(tasks: [Task]) -> [Task] {
@@ -110,6 +118,24 @@ final class TaskListInteractor: TaskListInteractorInputProtocol {
                 userId: $0.userId,
                 date: $0.date == nil ? Date() : $0.date
             )
+        }
+    }
+    
+    private func refreshTasks() {
+        downloadService.fetchData { [weak self] result in
+            guard let self else { return }
+            
+            switch result {
+            case .success(let list):
+                let formattedTasks = addDatesToTasks(tasks: list.tasks)
+                self.tasks = formattedTasks
+                self.shownTasks = formattedTasks
+                self.coreDataService.saveTasks(formattedTasks)
+                self.presenter?.updateTasks(formattedTasks)
+                AppLaunchManager.shared.markAsLaunched()
+            case .failure(let error):
+                self.presenter?.didFailLoadingTasks(error)
+            }
         }
     }
 }
