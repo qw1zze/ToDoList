@@ -17,7 +17,11 @@ protocol CoreDataServiceProtocol {
 }
 
 final class CoreDataService: CoreDataServiceProtocol {
-    private let coreDataStack = CoreDataStack.shared
+    private let coreDataStack: CoreDataStacking
+    
+    init(coreDataStack: CoreDataStacking = CoreDataStack.shared) {
+        self.coreDataStack = coreDataStack
+    }
     
     func saveTasks(_ tasks: [Task], completion: @escaping (Result<Void, Error>) -> Void) {
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
