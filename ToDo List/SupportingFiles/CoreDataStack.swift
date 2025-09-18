@@ -8,7 +8,12 @@
 import CoreData
 import Foundation
 
-class CoreDataStack {
+protocol CoreDataStacking {
+    func getBackgroundContext() -> NSManagedObjectContext
+    func saveBackgroundContext()
+}
+
+class CoreDataStack: CoreDataStacking {
     static let shared = CoreDataStack()
     
     private init() {}
